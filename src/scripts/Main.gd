@@ -2,7 +2,7 @@ extends Node2D
 
 const SaveMgr = preload("res://scripts/SaveManager.gd")
 
-const WINDOW_HEIGHT := 180
+const WINDOW_HEIGHT := 120
 const TUNNEL_FIRST_DELAY := 20.0
 const TUNNEL_INTERVAL := 70.0
 const TUNNEL_DURATION := 8.0
@@ -43,7 +43,12 @@ const MOCK_FOCUS_Y := 0.5
 @onready var _station_body: Label = $StationUI/Root/Panel/Margin/VBox/Body
 @onready var _take_button: Button = $StationUI/Root/Panel/Margin/VBox/Buttons/TakeButton
 @onready var _skip_button: Button = $StationUI/Root/Panel/Margin/VBox/Buttons/SkipButton
-@onready var _status_label: Label = $StatusHUD/StatusLabel
+@onready var _status_label: Label = $StatusHUD/Bar/StatusLabel
+@onready var _mode20_button: Button = $StatusHUD/Bar/Buttons/Mode20Button
+@onready var _mode40_button: Button = $StatusHUD/Bar/Buttons/Mode40Button
+@onready var _mode_off_button: Button = $StatusHUD/Bar/Buttons/ModeOffButton
+@onready var _station_button: Button = $StatusHUD/Bar/Buttons/StationButton
+@onready var _speed_button: Button = $StatusHUD/Bar/Buttons/SpeedButton
 
 var _save = null
 var _hidden := false
@@ -76,6 +81,11 @@ func _ready() -> void:
 
 	_take_button.pressed.connect(_on_take_pressed)
 	_skip_button.pressed.connect(_on_skip_pressed)
+	_mode20_button.pressed.connect(func() -> void: set_interval_mode(SaveMgr.MODE_20))
+	_mode40_button.pressed.connect(func() -> void: set_interval_mode(SaveMgr.MODE_40))
+	_mode_off_button.pressed.connect(func() -> void: set_interval_mode(SaveMgr.MODE_OFF))
+	_station_button.pressed.connect(skip_to_station)
+	_speed_button.pressed.connect(cycle_debug_time_scale)
 	_station_root.visible = false
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 
@@ -476,13 +486,28 @@ func _persist_save() -> void:
 func _update_status_hud() -> void:
 	if _save == null:
 		return
-	var mute_mark := " · mute" if _save.muted else ""
-	_status_label.text = "Mode %s · %dt · x%.0f%s" % [
-		_save.mode_label(),
+	var mode_text := "Off"
+	match _save.interval_mode:
+		SaveMgr.MODE_20:
+			mode_text = "20 min"
+		SaveMgr.MODE_40:
+			mode_text = "40 min"
+	var mute_mark := "   MUTE" if _save.muted else ""
+	_status_label.text = "Mode: %s   Tickets: %d   speed x%.0f%s" % [
+		mode_text,
 		_save.tickets,
 		_save.debug_time_scale,
 		mute_mark,
 	]
+	_speed_button.text = "x%.0f" % _save.debug_time_scale
+
+
+func _is_key(event: InputEventKey, code: Key) -> bool:
+	return (
+		event.physical_keycode == code
+		or event.keycode == code
+		or event.key_label == code
+	)
 
 
 func _input(event: InputEvent) -> void:
@@ -494,25 +519,23 @@ func _input(event: InputEvent) -> void:
 		get_tree().quit()
 		return
 
-	if event is InputEventKey and event.pressed and not event.echo:
-		var key: Key = event.physical_keycode
-		if key == KEY_NONE:
-			key = event.keycode
-		match key:
-			KEY_H:
-				if not _station_open:
-					toggle_hide()
-			KEY_M:
-				toggle_mute()
-			KEY_P:
-				toggle_mock_preview()
-			KEY_1:
-				set_interval_mode(SaveMgr.MODE_20)
-			KEY_2:
-				set_interval_mode(SaveMgr.MODE_40)
-			KEY_3:
-				set_interval_mode(SaveMgr.MODE_OFF)
-			KEY_0:
-				cycle_debug_time_scale()
-			KEY_9:
-				skip_to_station()
+	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+
+	var key_event := event as InputEventKey
+	if _is_key(key_event, KEY_H) and not _station_open:
+		toggle_hide()
+	elif _is_key(key_event, KEY_M):
+		toggle_mute()
+	elif _is_key(key_event, KEY_P):
+		toggle_mock_preview()
+	elif _is_key(key_event, KEY_1) or _is_key(key_event, KEY_KP_1):
+		set_interval_mode(SaveMgr.MODE_20)
+	elif _is_key(key_event, KEY_2) or _is_key(key_event, KEY_KP_2):
+		set_interval_mode(SaveMgr.MODE_40)
+	elif _is_key(key_event, KEY_3) or _is_key(key_event, KEY_KP_3):
+		set_interval_mode(SaveMgr.MODE_OFF)
+	elif _is_key(key_event, KEY_0) or _is_key(key_event, KEY_KP_0):
+		cycle_debug_time_scale()
+	elif _is_key(key_event, KEY_9) or _is_key(key_event, KEY_KP_9):
+		skip_to_station()
