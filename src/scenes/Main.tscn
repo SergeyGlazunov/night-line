@@ -1,65 +1,66 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://ct2uhqcv38x3j"]
 
-[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://4nfpcwpqy7lc" path="res://scripts/Main.gd" id="1_main"]
 [ext_resource type="AudioStream" uid="uid://btvx81i80xdif" path="res://assets/audio/train_loop_main.ogg" id="2_rail"]
 [ext_resource type="AudioStream" uid="uid://bv0f8sic84nrd" path="res://assets/audio/rain_loop.ogg" id="3_rain"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=1741558608]
 script = ExtResource("1_main")
 
-[node name="Sky" type="ColorRect" parent="."]
+[node name="Sky" type="ColorRect" parent="." unique_id=1459659657]
 offset_right = 1920.0
 offset_bottom = 120.0
 mouse_filter = 2
 color = Color(0.0470588, 0.0627451, 0.105882, 1)
 
-[node name="MountainsLayer" type="Parallax2D" parent="."]
+[node name="MountainsLayer" type="Parallax2D" parent="." unique_id=2109384129]
 repeat_size = Vector2(1920, 0)
 autoscroll = Vector2(-30, 0)
 
-[node name="Mountains" type="ColorRect" parent="MountainsLayer"]
+[node name="Mountains" type="ColorRect" parent="MountainsLayer" unique_id=1447340790]
 offset_top = 48.0
 offset_right = 1920.0
 offset_bottom = 88.0
 mouse_filter = 2
 color = Color(0.101961, 0.137255, 0.227451, 1)
 
-[node name="ForestLayer" type="Parallax2D" parent="."]
+[node name="ForestLayer" type="Parallax2D" parent="." unique_id=1887359061]
 repeat_size = Vector2(1920, 0)
 autoscroll = Vector2(-90, 0)
 
-[node name="Forest" type="ColorRect" parent="ForestLayer"]
+[node name="Forest" type="ColorRect" parent="ForestLayer" unique_id=774840695]
 offset_top = 72.0
 offset_right = 1920.0
 offset_bottom = 102.0
 mouse_filter = 2
 color = Color(0.0666667, 0.133333, 0.109804, 1)
 
-[node name="Ground" type="ColorRect" parent="."]
+[node name="Ground" type="ColorRect" parent="." unique_id=211071538]
 offset_top = 108.0
 offset_right = 1920.0
-offset_bottom = 120.0
+offset_bottom = 124.0
 mouse_filter = 2
 color = Color(0.0941176, 0.0823529, 0.0745098, 1)
 
-[node name="Rail" type="ColorRect" parent="Ground"]
+[node name="Rail" type="ColorRect" parent="Ground" unique_id=820289312]
+layout_mode = 0
 offset_right = 1920.0
-offset_bottom = 3.0
+offset_bottom = 6.0
 mouse_filter = 2
 color = Color(0.352941, 0.396078, 0.466667, 1)
 
-[node name="Train" type="Node2D" parent="."]
+[node name="Train" type="Node2D" parent="." unique_id=433354759]
 position = Vector2(200, 58)
 
-[node name="PassengerCar" type="Node2D" parent="Train"]
+[node name="PassengerCar" type="Node2D" parent="Train" unique_id=1165426235]
 
-[node name="Body" type="ColorRect" parent="Train/PassengerCar"]
+[node name="Body" type="ColorRect" parent="Train/PassengerCar" unique_id=847044936]
 offset_right = 130.0
 offset_bottom = 50.0
 mouse_filter = 2
 color = Color(0.172549, 0.243137, 0.313726, 1)
 
-[node name="Window1" type="ColorRect" parent="Train/PassengerCar"]
+[node name="Window1" type="ColorRect" parent="Train/PassengerCar" unique_id=2329080]
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 32.0
@@ -67,7 +68,7 @@ offset_bottom = 28.0
 mouse_filter = 2
 color = Color(1, 0.87451, 0.478431, 1)
 
-[node name="Window2" type="ColorRect" parent="Train/PassengerCar"]
+[node name="Window2" type="ColorRect" parent="Train/PassengerCar" unique_id=1555475324]
 offset_left = 48.0
 offset_top = 12.0
 offset_right = 68.0
@@ -75,7 +76,7 @@ offset_bottom = 28.0
 mouse_filter = 2
 color = Color(1, 0.87451, 0.478431, 1)
 
-[node name="Window3" type="ColorRect" parent="Train/PassengerCar"]
+[node name="Window3" type="ColorRect" parent="Train/PassengerCar" unique_id=230715397]
 offset_left = 84.0
 offset_top = 12.0
 offset_right = 104.0
@@ -83,7 +84,7 @@ offset_bottom = 28.0
 mouse_filter = 2
 color = Color(1, 0.87451, 0.478431, 1)
 
-[node name="Coupler" type="ColorRect" parent="Train"]
+[node name="Coupler" type="ColorRect" parent="Train" unique_id=773620939]
 offset_left = 130.0
 offset_top = 34.0
 offset_right = 142.0
@@ -91,16 +92,16 @@ offset_bottom = 40.0
 mouse_filter = 2
 color = Color(0.101961, 0.101961, 0.101961, 1)
 
-[node name="Locomotive" type="Node2D" parent="Train"]
+[node name="Locomotive" type="Node2D" parent="Train" unique_id=1581220033]
 position = Vector2(142, 0)
 
-[node name="Body" type="ColorRect" parent="Train/Locomotive"]
+[node name="Body" type="ColorRect" parent="Train/Locomotive" unique_id=41860343]
 offset_right = 150.0
 offset_bottom = 50.0
 mouse_filter = 2
 color = Color(0.129412, 0.145098, 0.160784, 1)
 
-[node name="Cabin" type="ColorRect" parent="Train/Locomotive"]
+[node name="Cabin" type="ColorRect" parent="Train/Locomotive" unique_id=1454797313]
 offset_left = 10.0
 offset_top = 12.0
 offset_right = 36.0
@@ -108,7 +109,7 @@ offset_bottom = 32.0
 mouse_filter = 2
 color = Color(1, 0.87451, 0.478431, 1)
 
-[node name="Headlight" type="ColorRect" parent="Train/Locomotive"]
+[node name="Headlight" type="ColorRect" parent="Train/Locomotive" unique_id=141684380]
 offset_left = 145.0
 offset_top = 22.0
 offset_right = 150.0
@@ -116,14 +117,14 @@ offset_bottom = 32.0
 mouse_filter = 2
 color = Color(1, 0.956863, 0.721569, 1)
 
-[node name="Audio" type="Node" parent="."]
+[node name="Audio" type="Node" parent="." unique_id=92411158]
 
-[node name="RailLoop" type="AudioStreamPlayer" parent="Audio"]
+[node name="RailLoop" type="AudioStreamPlayer" parent="Audio" unique_id=180292921]
 stream = ExtResource("2_rail")
 volume_db = -4.0
 autoplay = true
 
-[node name="RainLoop" type="AudioStreamPlayer" parent="Audio"]
+[node name="RainLoop" type="AudioStreamPlayer" parent="Audio" unique_id=1228886003]
 stream = ExtResource("3_rain")
 volume_db = -6.0
 autoplay = true
