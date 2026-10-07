@@ -1,14 +1,28 @@
 extends Node2D
 
 const WINDOW_HEIGHT := 120
+const TUNNEL_FIRST_DELAY := 20.0
+const TUNNEL_INTERVAL := 50.0
+const TUNNEL_DURATION := 8.0
+const TUNNEL_FADE_IN := 1.2
+const TUNNEL_FADE_OUT := 1.5
+const TUNNEL_MAX_ALPHA := 0.72
 
 @onready var _rail_loop: AudioStreamPlayer = $Audio/RailLoop
 @onready var _rain_loop: AudioStreamPlayer = $Audio/RainLoop
+@onready var _cafe_loop: AudioStreamPlayer = $Audio/CafeLoop
+@onready var _tunnel_sfx: AudioStreamPlayer = $Audio/TunnelSfx
+@onready var _tunnel_overlay: ColorRect = $TunnelOverlay
+
+var _hidden := false
+var _muted := false
+var _in_tunnel := false
 
 
 func _ready() -> void:
 	setup_window()
 	start_ambiance()
+	_schedule_tunnel(TUNNEL_FIRST_DELAY)
 
 
 func setup_window() -> void:
@@ -28,11 +42,16 @@ func setup_window() -> void:
 func start_ambiance() -> void:
 	_ensure_loop(_rail_loop)
 	_ensure_loop(_rain_loop)
+	_ensure_loop(_cafe_loop)
 
-	if _rail_loop.stream != null and not _rail_loop.playing:
-		_rail_loop.play()
-	if _rain_loop.stream != null and not _rain_loop.playing:
-		_rain_loop.play()
+	_play_if_needed(_rail_loop)
+	_play_if_needed(_rain_loop)
+	_play_if_needed(_cafe_loop)
+
+
+func _play_if_needed(player: AudioStreamPlayer) -> void:
+	if player.stream != null and not player.playing:
+		player.play()
 
 
 func _ensure_loop(player: AudioStreamPlayer) -> void:
@@ -41,6 +60,65 @@ func _ensure_loop(player: AudioStreamPlayer) -> void:
 		(stream as AudioStreamOggVorbis).loop = true
 
 
+func toggle_hide() -> void:
+	_hidden = not _hidden
+	get_window().visible = not _hidden
+
+
+func toggle_mute() -> void:
+	_muted = not _muted
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), _muted)
+
+
+func _schedule_tunnel(delay: float) -> void:
+	get_tree().create_timer(delay).timeout.connect(_on_tunnel_due, CONNECT_ONE_SHOT)
+
+
+func _on_tunnel_due() -> void:
+	await run_tunnel()
+	_schedule_tunnel(TUNNEL_INTERVAL)
+
+
+func run_tunnel() -> void:
+	if _in_tunnel:
+		return
+
+	_in_tunnel = true
+
+	var fade_in := create_tween()
+	fade_in.tween_property(_tunnel_overlay, "color:a", TUNNEL_MAX_ALPHA, TUNNEL_FADE_IN)
+	await fade_in.finished
+
+	if _tunnel_sfx.stream != null:
+		_tunnel_sfx.play()
+
+	await get_tree().create_timer(TUNNEL_DURATION).timeout
+
+	if _tunnel_sfx.playing:
+		_tunnel_sfx.stop()
+
+	var fade_out := create_tween()
+	fade_out.tween_property(_tunnel_overlay, "color:a", 0.0, TUNNEL_FADE_OUT)
+	await fade_out.finished
+
+	_in_tunnel = false
+
+
+func _notification(what: int) -> void:
+	# Restored from taskbar / Alt-Tab while "hidden".
+	if what == NOTIFICATION_APPLICATION_FOCUS_IN and _hidden:
+		_hidden = false
+		get_window().visible = true
+
+
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_tree().quit()
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_H:
+				toggle_hide()
+			KEY_M:
+				toggle_mute()

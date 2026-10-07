@@ -12,7 +12,7 @@ dest_files=["res://.godot/imported/cafe.ogg-ba3cdb05338805cefc1602b29155cf1b.ogg
 
 [params]
 
-loop=false
+loop=true
 loop_offset=0
 bpm=0
 beat_count=0
