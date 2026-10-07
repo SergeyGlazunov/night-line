@@ -12,7 +12,7 @@ dest_files=["res://.godot/imported/train_loop_alt.ogg-cf2da63325942b8d82278d7eb6
 
 [params]
 
-loop=false
+loop=true
 loop_offset=0
 bpm=0
 beat_count=0
