@@ -28,10 +28,10 @@ const STATION_INTERVAL := 90.0
 @onready var _tunnel_overlay: ColorRect = $TunnelOverlay
 @onready var _fog_overlay: ColorRect = $FogOverlay
 @onready var _station_root: Control = $StationUI/Root
-@onready var _station_title: Label = $StationUI/Root/Panel/Title
-@onready var _station_body: Label = $StationUI/Root/Panel/Body
-@onready var _take_button: Button = $StationUI/Root/Panel/Buttons/TakeButton
-@onready var _skip_button: Button = $StationUI/Root/Panel/Buttons/SkipButton
+@onready var _station_title: Label = $StationUI/Root/Center/Panel/Margin/VBox/Title
+@onready var _station_body: Label = $StationUI/Root/Center/Panel/Margin/VBox/Body
+@onready var _take_button: Button = $StationUI/Root/Center/Panel/Margin/VBox/Buttons/TakeButton
+@onready var _skip_button: Button = $StationUI/Root/Center/Panel/Margin/VBox/Buttons/SkipButton
 
 var _hidden := false
 var _muted := false
