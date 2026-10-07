@@ -1,6 +1,6 @@
 extends Node2D
 
-const WINDOW_HEIGHT := 180
+const WINDOW_HEIGHT := 120
 
 @onready var _rail_loop: AudioStreamPlayer = $Audio/RailLoop
 @onready var _rain_loop: AudioStreamPlayer = $Audio/RainLoop
@@ -26,10 +26,19 @@ func setup_window() -> void:
 
 
 func start_ambiance() -> void:
+	_ensure_loop(_rail_loop)
+	_ensure_loop(_rain_loop)
+
 	if _rail_loop.stream != null and not _rail_loop.playing:
 		_rail_loop.play()
 	if _rain_loop.stream != null and not _rain_loop.playing:
 		_rain_loop.play()
+
+
+func _ensure_loop(player: AudioStreamPlayer) -> void:
+	var stream := player.stream
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
 
 
 func _input(event: InputEvent) -> void:
