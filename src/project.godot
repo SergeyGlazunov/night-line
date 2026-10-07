@@ -11,11 +11,15 @@ config_version=5
 [application]
 
 config/name="Night Line"
+run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+run/low_processor_mode=true
 config/icon="res://icon.svg"
 
 [display]
 
+window/size/viewport_width=1920
+window/size/viewport_height=180
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
