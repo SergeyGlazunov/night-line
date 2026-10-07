@@ -115,6 +115,7 @@ func _notification(what: int) -> void:
 
 
 func _on_viewport_size_changed() -> void:
+	_resize_strip_layers()
 	if _use_mock_preview:
 		_layout_mock_preview()
 	if _station_open:
@@ -139,8 +140,26 @@ func setup_window() -> void:
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 
 	_save.screen_index = screen_index
+	_resize_strip_layers()
 	if _use_mock_preview:
 		_layout_mock_preview()
+
+
+func _resize_strip_layers() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	if vp.x < 2.0 or vp.y < 2.0:
+		vp = Vector2(1920.0, float(WINDOW_HEIGHT))
+
+	$Sky.size = vp
+	_fog_overlay.size = vp
+	_tunnel_overlay.size = vp
+	$Ground.size = Vector2(vp.x, $Ground.size.y)
+	if has_node("Ground/Rail"):
+		$Ground/Rail.size = Vector2(vp.x, $Ground/Rail.size.y)
+	if has_node("MountainsLayer/Mountains"):
+		$MountainsLayer/Mountains.size = Vector2(vp.x, $MountainsLayer/Mountains.size.y)
+	if has_node("ForestLayer/Forest"):
+		$ForestLayer/Forest.size = Vector2(vp.x, $ForestLayer/Forest.size.y)
 
 
 func _apply_visual_mode() -> void:
@@ -469,16 +488,17 @@ func _resolve_station(took_passenger: bool) -> void:
 
 
 func _on_station_button_pressed() -> void:
-	skip_to_station()
-
-
-func skip_to_station() -> void:
+	# Fire-and-forget from UI signal; never block the button callback.
 	if _station_open:
 		return
 	_station_token += 1
-	await open_station(true)
+	open_station(true)
 	if _save.interval_mode != SaveMgr.MODE_OFF:
 		_schedule_station(_station_interval_seconds())
+
+
+func skip_to_station() -> void:
+	_on_station_button_pressed()
 
 
 func _persist_save() -> void:
