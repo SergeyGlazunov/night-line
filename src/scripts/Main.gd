@@ -24,7 +24,8 @@ const REAL_INTERVAL_40_SEC := 40.0 * 60.0
 # Temporary full-scene art preview. ColorRect prototype stays in the tree.
 const USE_MOCK_PREVIEW := true
 const MOCK_PATH := "res://assets/sprites/mock.png"
-const MOCK_FOCUS_Y := 0.5
+# Approximate share of mock art that is the bottom ground band.
+const MOCK_GROUND_FRAC := 0.24
 
 @onready var _mountains_layer: Parallax2D = $MountainsLayer
 @onready var _forest_layer: Parallax2D = $ForestLayer
@@ -123,26 +124,43 @@ func _on_viewport_size_changed() -> void:
 
 
 func setup_window() -> void:
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-
 	var screen_count := DisplayServer.get_screen_count()
 	var screen_index := clampi(_save.screen_index, 0, maxi(0, screen_count - 1))
-	DisplayServer.window_set_current_screen(screen_index)
-
 	var screen_rect := DisplayServer.screen_get_usable_rect(screen_index)
-	var window_width: int = screen_rect.size.x
-	DisplayServer.window_set_size(Vector2i(window_width, WINDOW_HEIGHT))
 
-	var target_pos_y: int = screen_rect.position.y + screen_rect.size.y - WINDOW_HEIGHT
-	DisplayServer.window_set_position(Vector2i(screen_rect.position.x, target_pos_y))
+	# Use Window API (same path for Project Manager run and Editor F5).
+	# content_scale_factor=1 keeps Control hitboxes aligned with pixels.
+	var win := get_window()
+	win.mode = Window.MODE_WINDOWED
+	win.borderless = true
+	win.always_on_top = true
+	win.current_screen = screen_index
+	win.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+	win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_IGNORE
+	win.content_scale_factor = 1.0
 
+	var window_width: int = maxi(WINDOW_HEIGHT, screen_rect.size.x)
+	win.size = Vector2i(window_width, WINDOW_HEIGHT)
+	win.position = Vector2i(
+		screen_rect.position.x,
+		screen_rect.position.y + screen_rect.size.y - WINDOW_HEIGHT
+	)
+
+	# Mirror via DisplayServer for hosts that ignore Window flags on first frame.
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+	DisplayServer.window_set_size(win.size)
+	DisplayServer.window_set_position(win.position)
 
 	_save.screen_index = screen_index
+	call_deferred("_after_window_ready")
+
+
+func _after_window_ready() -> void:
 	_resize_strip_layers()
 	if _use_mock_preview:
 		_layout_mock_preview()
+	_update_status_hud()
 
 
 func _resize_strip_layers() -> void:
@@ -202,11 +220,12 @@ func _layout_mock_preview() -> void:
 	if vp.x <= 1.0 or vp.y <= 1.0:
 		vp = Vector2(1920.0, float(WINDOW_HEIGHT))
 
-	# New mock is already strip-shaped (e.g. 1920x180): fit width, center vertically.
+	# Fit width, keep only half of the bottom ground band in frame.
 	var scale := vp.x / source_size.x
 	var scaled_h := source_size.y * scale
-	var top := (scaled_h - vp.y) * MOCK_FOCUS_Y
-	top = clampf(top, 0.0, maxf(0.0, scaled_h - vp.y))
+	var max_top := maxf(0.0, scaled_h - vp.y)
+	var ground_keep := scaled_h * MOCK_GROUND_FRAC * 0.5
+	var top := clampf(scaled_h - vp.y - ground_keep, 0.0, max_top)
 
 	_mock_sprite.scale = Vector2(scale, scale)
 	_mock_sprite.position = Vector2(0.0, -top)

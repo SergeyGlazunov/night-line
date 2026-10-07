@@ -20,7 +20,10 @@ config/icon="res://icon.svg"
 
 window/size/viewport_width=1920
 window/size/viewport_height=120
+window/size/window_width_override=1920
+window/size/window_height_override=120
 window/stretch/mode="disabled"
+window/dpi/allow_hidpi=false
 
 [physics]
 
