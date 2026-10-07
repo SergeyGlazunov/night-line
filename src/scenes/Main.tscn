@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="AudioStream" uid="uid://btvx81i80xdif" path="res://assets/audio/train_loop_main.ogg" id="2_rail"]
+[ext_resource type="AudioStream" uid="uid://bv0f8sic84nrd" path="res://assets/audio/rain_loop.ogg" id="3_rain"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -113,3 +115,15 @@ offset_right = 160.0
 offset_bottom = 42.0
 mouse_filter = 2
 color = Color(1, 0.956863, 0.721569, 1)
+
+[node name="Audio" type="Node" parent="."]
+
+[node name="RailLoop" type="AudioStreamPlayer" parent="Audio"]
+stream = ExtResource("2_rail")
+volume_db = -4.0
+autoplay = true
+
+[node name="RainLoop" type="AudioStreamPlayer" parent="Audio"]
+stream = ExtResource("3_rain")
+volume_db = -8.0
+autoplay = true

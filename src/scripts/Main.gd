@@ -2,9 +2,13 @@ extends Node2D
 
 const WINDOW_HEIGHT := 180
 
+@onready var _rail_loop: AudioStreamPlayer = $Audio/RailLoop
+@onready var _rain_loop: AudioStreamPlayer = $Audio/RainLoop
+
 
 func _ready() -> void:
 	setup_window()
+	start_ambiance()
 
 
 func setup_window() -> void:
@@ -19,6 +23,13 @@ func setup_window() -> void:
 
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+
+
+func start_ambiance() -> void:
+	if _rail_loop.stream != null and not _rail_loop.playing:
+		_rail_loop.play()
+	if _rain_loop.stream != null and not _rain_loop.playing:
+		_rain_loop.play()
 
 
 func _input(event: InputEvent) -> void:
