@@ -19,6 +19,12 @@ const STATION_FIRST_DELAY := 40.0
 const STATION_INTERVAL := 90.0
 const STATION_PANEL_SIZE := Vector2(400, 64)
 
+# Temporary full-scene art preview. ColorRect prototype stays in the tree.
+const USE_MOCK_PREVIEW := true
+const MOCK_SOURCE_SIZE := Vector2(2172, 724)
+# Vertical focus in source image (0 = top, 1 = bottom). Train sits near mid-lower.
+const MOCK_FOCUS_Y := 0.55
+
 @onready var _mountains_layer: Parallax2D = $MountainsLayer
 @onready var _forest_layer: Parallax2D = $ForestLayer
 @onready var _rail_loop: AudioStreamPlayer = $Audio/RailLoop
@@ -28,6 +34,8 @@ const STATION_PANEL_SIZE := Vector2(400, 64)
 @onready var _tunnel_sfx: AudioStreamPlayer = $Audio/TunnelSfx
 @onready var _tunnel_overlay: ColorRect = $TunnelOverlay
 @onready var _fog_overlay: ColorRect = $FogOverlay
+@onready var _mock_preview: Node2D = $MockPreview
+@onready var _mock_sprite: Sprite2D = $MockPreview/Sprite
 @onready var _station_root: Control = $StationUI/Root
 @onready var _station_panel: Control = $StationUI/Root/Panel
 @onready var _station_title: Label = $StationUI/Root/Panel/Margin/VBox/Title
@@ -43,12 +51,23 @@ var _station_open := false
 var _event_lock := false
 var _last_hide_toggle_ms := 0
 var _tickets := 0
+var _use_mock_preview := USE_MOCK_PREVIEW
 
 var _mountains_scroll := Vector2(-30, 0)
 var _forest_scroll := Vector2(-90, 0)
 
+var _prototype_visuals: Array[CanvasItem] = []
+
 
 func _ready() -> void:
+	_prototype_visuals = [
+		$Sky as CanvasItem,
+		$MountainsLayer as CanvasItem,
+		$ForestLayer as CanvasItem,
+		$Ground as CanvasItem,
+		$Train as CanvasItem,
+	]
+
 	_mountains_scroll = _mountains_layer.autoscroll
 	_forest_scroll = _forest_layer.autoscroll
 
@@ -58,6 +77,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 
 	setup_window()
+	_apply_visual_mode()
 	start_ambiance()
 	_schedule_fog(FOG_FIRST_DELAY)
 	_schedule_tunnel(TUNNEL_FIRST_DELAY)
@@ -65,6 +85,8 @@ func _ready() -> void:
 
 
 func _on_viewport_size_changed() -> void:
+	if _use_mock_preview:
+		_layout_mock_preview()
 	if _station_open:
 		_layout_station_panel()
 
@@ -83,6 +105,38 @@ func setup_window() -> void:
 
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+
+	if _use_mock_preview:
+		_layout_mock_preview()
+
+
+func _apply_visual_mode() -> void:
+	for node in _prototype_visuals:
+		node.visible = not _use_mock_preview
+	_mock_preview.visible = _use_mock_preview
+	if _use_mock_preview:
+		_layout_mock_preview()
+
+
+func _layout_mock_preview() -> void:
+	if _mock_sprite.texture == null:
+		return
+
+	var vp := get_viewport().get_visible_rect().size
+	var scale := vp.x / MOCK_SOURCE_SIZE.x
+	var scaled_h := MOCK_SOURCE_SIZE.y * scale
+	var focus_y := scaled_h * MOCK_FOCUS_Y
+	var top := focus_y - vp.y * 0.5
+	top = clampf(top, 0.0, maxf(0.0, scaled_h - vp.y))
+
+	_mock_sprite.scale = Vector2(scale, scale)
+	_mock_sprite.position = Vector2(0.0, -top)
+
+
+func toggle_mock_preview() -> void:
+	_use_mock_preview = not _use_mock_preview
+	_apply_visual_mode()
+
 
 
 func start_ambiance() -> void:
@@ -300,3 +354,5 @@ func _input(event: InputEvent) -> void:
 					toggle_hide()
 			KEY_M:
 				toggle_mute()
+			KEY_P:
+				toggle_mock_preview()
