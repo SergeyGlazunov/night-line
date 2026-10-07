@@ -84,7 +84,7 @@ func _ready() -> void:
 	_mode20_button.pressed.connect(func() -> void: set_interval_mode(SaveMgr.MODE_20))
 	_mode40_button.pressed.connect(func() -> void: set_interval_mode(SaveMgr.MODE_40))
 	_mode_off_button.pressed.connect(func() -> void: set_interval_mode(SaveMgr.MODE_OFF))
-	_station_button.pressed.connect(skip_to_station)
+	_station_button.pressed.connect(_on_station_button_pressed)
 	_speed_button.pressed.connect(cycle_debug_time_scale)
 	_station_root.visible = false
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
@@ -405,8 +405,10 @@ func _on_station_due() -> void:
 		_schedule_station(_station_interval_seconds())
 
 
-func open_station() -> void:
-	if _station_open or _save.interval_mode == SaveMgr.MODE_OFF:
+func open_station(force: bool = false) -> void:
+	if _station_open:
+		return
+	if not force and _save.interval_mode == SaveMgr.MODE_OFF:
 		return
 
 	var waited := 0.0
@@ -466,11 +468,15 @@ func _resolve_station(took_passenger: bool) -> void:
 		clear_fog.tween_property(_fog_overlay, "color:a", 0.0, 1.0)
 
 
+func _on_station_button_pressed() -> void:
+	skip_to_station()
+
+
 func skip_to_station() -> void:
-	if _save.interval_mode == SaveMgr.MODE_OFF or _station_open:
+	if _station_open:
 		return
 	_station_token += 1
-	await open_station()
+	await open_station(true)
 	if _save.interval_mode != SaveMgr.MODE_OFF:
 		_schedule_station(_station_interval_seconds())
 
