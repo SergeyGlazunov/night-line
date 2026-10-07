@@ -26,6 +26,8 @@ func _ready() -> void:
 
 
 func setup_window() -> void:
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+
 	var screen_index := DisplayServer.window_get_current_screen()
 	var screen_rect := DisplayServer.screen_get_usable_rect(screen_index)
 
@@ -61,8 +63,22 @@ func _ensure_loop(player: AudioStreamPlayer) -> void:
 
 
 func toggle_hide() -> void:
-	_hidden = not _hidden
-	get_window().visible = not _hidden
+	if _hidden:
+		_show_strip()
+	else:
+		_hide_strip()
+
+
+func _hide_strip() -> void:
+	_hidden = true
+	# visible=false is unreliable for borderless + always-on-top on Windows.
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, false)
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
+
+
+func _show_strip() -> void:
+	_hidden = false
+	setup_window()
 
 
 func toggle_mute() -> void:
@@ -105,10 +121,9 @@ func run_tunnel() -> void:
 
 
 func _notification(what: int) -> void:
-	# Restored from taskbar / Alt-Tab while "hidden".
+	# Restored from taskbar / Alt-Tab while hidden.
 	if what == NOTIFICATION_APPLICATION_FOCUS_IN and _hidden:
-		_hidden = false
-		get_window().visible = true
+		call_deferred("_show_strip")
 
 
 func _input(event: InputEvent) -> void:
@@ -117,7 +132,10 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
+		var key: Key = event.physical_keycode
+		if key == KEY_NONE:
+			key = event.keycode
+		match key:
 			KEY_H:
 				toggle_hide()
 			KEY_M:
