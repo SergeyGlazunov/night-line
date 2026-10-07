@@ -15,14 +15,13 @@ const FOG_HOLD := 14.0
 const FOG_FADE := 2.5
 const FOG_MAX_ALPHA := 0.28
 
-const STATION_FIRST_DELAY := 40.0
-const STATION_INTERVAL := 90.0
 const STATION_PANEL_SIZE := Vector2(400, 64)
+const REAL_INTERVAL_20_SEC := 20.0 * 60.0
+const REAL_INTERVAL_40_SEC := 40.0 * 60.0
 
 # Temporary full-scene art preview. ColorRect prototype stays in the tree.
 const USE_MOCK_PREVIEW := true
 const MOCK_PATH := "res://assets/sprites/mock.png"
-# Vertical focus in source image (0 = top, 1 = bottom). Train sits near mid-lower.
 const MOCK_FOCUS_Y := 0.55
 
 @onready var _mountains_layer: Parallax2D = $MountainsLayer
@@ -42,20 +41,20 @@ const MOCK_FOCUS_Y := 0.55
 @onready var _station_body: Label = $StationUI/Root/Panel/Margin/VBox/Body
 @onready var _take_button: Button = $StationUI/Root/Panel/Margin/VBox/Buttons/TakeButton
 @onready var _skip_button: Button = $StationUI/Root/Panel/Margin/VBox/Buttons/SkipButton
+@onready var _status_label: Label = $StatusHUD/StatusLabel
 
+var _save := SaveManager.new()
 var _hidden := false
-var _muted := false
 var _in_tunnel := false
 var _in_fog := false
 var _station_open := false
 var _event_lock := false
 var _last_hide_toggle_ms := 0
-var _tickets := 0
 var _use_mock_preview := USE_MOCK_PREVIEW
+var _station_token := 0
 
 var _mountains_scroll := Vector2(-30, 0)
 var _forest_scroll := Vector2(-90, 0)
-
 var _prototype_visuals: Array[CanvasItem] = []
 
 
@@ -76,14 +75,25 @@ func _ready() -> void:
 	_station_root.visible = false
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 
+	_save.load_game()
+	_use_mock_preview = _save.use_mock_preview
+
 	setup_window()
+	_apply_mute_state()
 	_ensure_mock_texture()
 	_apply_visual_mode()
 	call_deferred("_apply_visual_mode")
 	start_ambiance()
+	_update_status_hud()
+
 	_schedule_fog(FOG_FIRST_DELAY)
 	_schedule_tunnel(TUNNEL_FIRST_DELAY)
-	_schedule_station(STATION_FIRST_DELAY)
+	_restart_station_schedule(true)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_persist_save()
 
 
 func _on_viewport_size_changed() -> void:
@@ -96,9 +106,12 @@ func _on_viewport_size_changed() -> void:
 func setup_window() -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
-	var screen_index := DisplayServer.window_get_current_screen()
-	var screen_rect := DisplayServer.screen_get_usable_rect(screen_index)
+	var screen_count := DisplayServer.get_screen_count()
+	var screen_index := clampi(_save.screen_index, 0, max(0, screen_count - 1))
+	if screen_index != DisplayServer.window_get_current_screen():
+		DisplayServer.window_set_current_screen(screen_index)
 
+	var screen_rect := DisplayServer.screen_get_usable_rect(screen_index)
 	var window_width: int = screen_rect.size.x
 	DisplayServer.window_set_size(Vector2i(window_width, WINDOW_HEIGHT))
 
@@ -108,6 +121,7 @@ func setup_window() -> void:
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 
+	_save.screen_index = screen_index
 	if _use_mock_preview:
 		_layout_mock_preview()
 
@@ -125,7 +139,6 @@ func _ensure_mock_texture() -> void:
 	if _mock_sprite.texture != null and _mock_sprite.texture.get_width() > 0:
 		return
 
-	# Load PNG pixels directly so a broken/missing .import cannot blank the strip.
 	var image := Image.new()
 	var abs_path := ProjectSettings.globalize_path(MOCK_PATH)
 	var err := image.load(abs_path)
@@ -165,8 +178,9 @@ func _layout_mock_preview() -> void:
 
 func toggle_mock_preview() -> void:
 	_use_mock_preview = not _use_mock_preview
+	_save.use_mock_preview = _use_mock_preview
 	_apply_visual_mode()
-
+	_persist_save()
 
 
 func start_ambiance() -> void:
@@ -177,8 +191,16 @@ func start_ambiance() -> void:
 
 	_play_if_needed(_rail_loop)
 	_play_if_needed(_rain_loop)
-	_play_if_needed(_cafe_loop)
-	_play_if_needed(_radio_loop)
+
+	if _save.has_cafe:
+		_play_if_needed(_cafe_loop)
+	else:
+		_cafe_loop.stop()
+
+	if _save.has_radio:
+		_play_if_needed(_radio_loop)
+	else:
+		_radio_loop.stop()
 
 
 func _play_if_needed(player: AudioStreamPlayer) -> void:
@@ -217,8 +239,62 @@ func _show_strip() -> void:
 
 
 func toggle_mute() -> void:
-	_muted = not _muted
-	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), _muted)
+	_save.muted = not _save.muted
+	_apply_mute_state()
+	_persist_save()
+	_update_status_hud()
+
+
+func _apply_mute_state() -> void:
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), _save.muted)
+
+
+func set_interval_mode(mode: String) -> void:
+	if mode not in [SaveManager.MODE_20, SaveManager.MODE_40, SaveManager.MODE_OFF]:
+		return
+	if _save.interval_mode == mode:
+		return
+
+	_save.interval_mode = mode
+	_persist_save()
+	_update_status_hud()
+	_restart_station_schedule(true)
+
+
+func cycle_debug_time_scale() -> void:
+	match int(_save.debug_time_scale):
+		1:
+			_save.debug_time_scale = 10.0
+		10:
+			_save.debug_time_scale = 60.0
+		_:
+			_save.debug_time_scale = 1.0
+	_persist_save()
+	_update_status_hud()
+	_restart_station_schedule(true)
+
+
+func _station_interval_seconds() -> float:
+	var real := 0.0
+	match _save.interval_mode:
+		SaveManager.MODE_20:
+			real = REAL_INTERVAL_20_SEC
+		SaveManager.MODE_40:
+			real = REAL_INTERVAL_40_SEC
+		_:
+			return 0.0
+	return maxf(1.0, real / maxf(1.0, _save.debug_time_scale))
+
+
+func _restart_station_schedule(immediate_countdown: bool) -> void:
+	_station_token += 1
+	if _save.interval_mode == SaveManager.MODE_OFF:
+		_update_status_hud()
+		return
+	var delay := _station_interval_seconds()
+	if not immediate_countdown:
+		delay = maxf(1.0, delay)
+	_schedule_station(delay)
 
 
 func _set_parallax_running(running: bool) -> void:
@@ -297,19 +373,28 @@ func run_tunnel() -> void:
 
 
 func _schedule_station(delay: float) -> void:
-	get_tree().create_timer(delay).timeout.connect(_on_station_due, CONNECT_ONE_SHOT)
+	_station_token += 1
+	var token := _station_token
+	get_tree().create_timer(delay).timeout.connect(
+		func() -> void:
+			if token != _station_token:
+				return
+			await _on_station_due()
+	)
 
 
 func _on_station_due() -> void:
+	if _save.interval_mode == SaveManager.MODE_OFF:
+		return
 	await open_station()
-	_schedule_station(STATION_INTERVAL)
+	if _save.interval_mode != SaveManager.MODE_OFF:
+		_schedule_station(_station_interval_seconds())
 
 
 func open_station() -> void:
-	if _station_open:
+	if _station_open or _save.interval_mode == SaveManager.MODE_OFF:
 		return
 
-	# Wait out tunnel/event lock briefly instead of skipping the station forever.
 	var waited := 0.0
 	while (_in_tunnel or _event_lock) and waited < 20.0:
 		await get_tree().create_timer(0.5).timeout
@@ -323,15 +408,15 @@ func open_station() -> void:
 	_set_parallax_running(false)
 
 	_station_title.text = "Hollow Creek · arrival"
-	_station_body.text = "Passenger: night-shift nurse  ·  +12 tickets"
+	_station_body.text = "Passenger: night-shift nurse  ·  +12 tickets  ·  now %dt" % _save.tickets
 	_layout_station_panel()
 	_station_root.visible = true
+	_update_status_hud()
 
 
 func _layout_station_panel() -> void:
 	var vp := get_viewport().get_visible_rect().size
 	var panel_size := STATION_PANEL_SIZE
-	# Keep the card fully inside the strip with equal top/bottom margins.
 	panel_size.y = minf(panel_size.y, maxf(52.0, vp.y - 16.0))
 	_station_panel.size = panel_size
 	_station_panel.position = Vector2(
@@ -352,18 +437,44 @@ func _resolve_station(took_passenger: bool) -> void:
 	if not _station_open:
 		return
 
-	if took_passenger:
-		_tickets += 12
+	if took_passenger and _save.interval_mode != SaveManager.MODE_OFF:
+		_save.tickets += 12
+		_persist_save()
 
 	_station_root.visible = false
 	_station_open = false
 	_event_lock = false
 	_set_parallax_running(true)
+	_update_status_hud()
 
-	# Clear leftover fog if a bank was held during the stop.
 	if _fog_overlay.color.a > 0.0 and not _in_fog:
 		var clear_fog := create_tween()
 		clear_fog.tween_property(_fog_overlay, "color:a", 0.0, 1.0)
+
+
+func skip_to_station() -> void:
+	if _save.interval_mode == SaveManager.MODE_OFF or _station_open:
+		return
+	_station_token += 1
+	await open_station()
+	if _save.interval_mode != SaveManager.MODE_OFF:
+		_schedule_station(_station_interval_seconds())
+
+
+func _persist_save() -> void:
+	_save.use_mock_preview = _use_mock_preview
+	_save.screen_index = DisplayServer.window_get_current_screen()
+	_save.save_game()
+
+
+func _update_status_hud() -> void:
+	var mute_mark := " · mute" if _save.muted else ""
+	_status_label.text = "Mode %s · %dt · x%.0f%s" % [
+		_save.mode_label(),
+		_save.tickets,
+		_save.debug_time_scale,
+		mute_mark,
+	]
 
 
 func _input(event: InputEvent) -> void:
@@ -371,6 +482,7 @@ func _input(event: InputEvent) -> void:
 		if _station_open:
 			_resolve_station(false)
 			return
+		_persist_save()
 		get_tree().quit()
 		return
 
@@ -386,3 +498,13 @@ func _input(event: InputEvent) -> void:
 				toggle_mute()
 			KEY_P:
 				toggle_mock_preview()
+			KEY_1:
+				set_interval_mode(SaveManager.MODE_20)
+			KEY_2:
+				set_interval_mode(SaveManager.MODE_40)
+			KEY_3:
+				set_interval_mode(SaveManager.MODE_OFF)
+			KEY_0:
+				cycle_debug_time_scale()
+			KEY_9:
+				skip_to_station()
