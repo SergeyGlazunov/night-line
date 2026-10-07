@@ -52,6 +52,34 @@ offset_bottom = 6.0
 mouse_filter = 2
 color = Color(0.352941, 0.396078, 0.466667, 1)
 
+[node name="StationMarker" type="Node2D" parent="."]
+visible = false
+
+[node name="Building" type="ColorRect" parent="StationMarker"]
+offset_top = 14.0
+offset_right = 180.0
+offset_bottom = 108.0
+mouse_filter = 2
+color = Color(0.43, 0.45, 0.48, 1)
+
+[node name="Roof" type="ColorRect" parent="StationMarker"]
+offset_left = -8.0
+offset_top = 8.0
+offset_right = 188.0
+offset_bottom = 18.0
+mouse_filter = 2
+color = Color(0.3, 0.32, 0.35, 1)
+
+[node name="Sign" type="Label" parent="StationMarker"]
+offset_top = 23.0
+offset_right = 180.0
+offset_bottom = 43.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "HOLLOW CREEK"
+horizontal_alignment = 1
+
 [node name="Train" type="Node2D" parent="."]
 position = Vector2(80, 58)
 
@@ -88,9 +116,9 @@ mouse_filter = 2
 color = Color(1, 0.87451, 0.478431, 1)
 
 [node name="CouplerA" type="ColorRect" parent="Train"]
-offset_left = 100.0
+offset_left = 0.0
 offset_top = 34.0
-offset_right = 110.0
+offset_right = 10.0
 offset_bottom = 40.0
 mouse_filter = 2
 color = Color(0.101961, 0.101961, 0.101961, 1)
@@ -137,9 +165,9 @@ mouse_filter = 2
 color = Color(0.556863, 0.223529, 0.152941, 1)
 
 [node name="CouplerB" type="ColorRect" parent="Train"]
-offset_left = 210.0
+offset_left = 0.0
 offset_top = 34.0
-offset_right = 220.0
+offset_right = 10.0
 offset_bottom = 40.0
 mouse_filter = 2
 color = Color(0.101961, 0.101961, 0.101961, 1)
@@ -186,9 +214,56 @@ mouse_filter = 2
 color = Color(0.74902, 0.796078, 0.85098, 1)
 
 [node name="CouplerC" type="ColorRect" parent="Train"]
-offset_left = 320.0
+offset_left = 0.0
 offset_top = 34.0
-offset_right = 330.0
+offset_right = 10.0
+offset_bottom = 40.0
+mouse_filter = 2
+color = Color(0.101961, 0.101961, 0.101961, 1)
+
+[node name="GreenhouseCar" type="Node2D" parent="Train"]
+
+[node name="Body" type="ColorRect" parent="Train/GreenhouseCar"]
+offset_right = 100.0
+offset_bottom = 50.0
+mouse_filter = 2
+color = Color(0.14, 0.3, 0.23, 1)
+
+[node name="Glass" type="ColorRect" parent="Train/GreenhouseCar"]
+offset_left = 6.0
+offset_top = 5.0
+offset_right = 94.0
+offset_bottom = 35.0
+mouse_filter = 2
+color = Color(0.64, 0.84, 0.65, 1)
+
+[node name="Plant1" type="ColorRect" parent="Train/GreenhouseCar"]
+offset_left = 18.0
+offset_top = 17.0
+offset_right = 32.0
+offset_bottom = 35.0
+mouse_filter = 2
+color = Color(0.16, 0.42, 0.22, 1)
+
+[node name="Plant2" type="ColorRect" parent="Train/GreenhouseCar"]
+offset_left = 48.0
+offset_top = 12.0
+offset_right = 62.0
+offset_bottom = 35.0
+mouse_filter = 2
+color = Color(0.22, 0.48, 0.27, 1)
+
+[node name="Plant3" type="ColorRect" parent="Train/GreenhouseCar"]
+offset_left = 75.0
+offset_top = 21.0
+offset_right = 86.0
+offset_bottom = 35.0
+mouse_filter = 2
+color = Color(0.16, 0.42, 0.22, 1)
+
+[node name="CouplerD" type="ColorRect" parent="Train"]
+offset_top = 34.0
+offset_right = 10.0
 offset_bottom = 40.0
 mouse_filter = 2
 color = Color(0.101961, 0.101961, 0.101961, 1)
@@ -240,7 +315,7 @@ mouse_filter = 2
 color = Color(0, 0, 0, 0)
 
 [node name="StationUI" type="CanvasLayer" parent="."]
-layer = 30
+layer = 110
 
 [node name="Root" type="Control" parent="StationUI"]
 visible = false
@@ -310,6 +385,7 @@ text = "Skip"
 layer = 100
 
 [node name="Bar" type="PanelContainer" parent="StatusHUD"]
+visible = false
 offset_left = 6.0
 offset_top = 4.0
 offset_right = 430.0
@@ -371,6 +447,67 @@ layout_mode = 2
 focus_mode = 0
 text = "x60"
 
+[node name="DesktopButtons" type="HBoxContainer" parent="StatusHUD/Bar/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HideButton" type="Button" parent="StatusHUD/Bar/Margin/VBox/DesktopButtons"]
+layout_mode = 2
+focus_mode = 0
+text = "Скрыть"
+tooltip_text = "H · вернуть окно: значок NIGHT LINE в трее или на панели задач"
+
+[node name="MuteButton" type="Button" parent="StatusHUD/Bar/Margin/VBox/DesktopButtons"]
+layout_mode = 2
+focus_mode = 0
+text = "Звук: вкл"
+tooltip_text = "M · выключить звук и скрыть поезд"
+
+[node name="MonitorButton" type="Button" parent="StatusHUD/Bar/Margin/VBox/DesktopButtons"]
+layout_mode = 2
+focus_mode = 0
+text = "Монитор 1 →"
+tooltip_text = "N · перенести на следующий монитор"
+
+[node name="CloseButton" type="Button" parent="StatusHUD/Bar/Margin/VBox/DesktopButtons"]
+layout_mode = 2
+focus_mode = 0
+text = "Свернуть"
+
+[node name="Chrome" type="Button" parent="StatusHUD"]
+visible = false
+offset_left = 6.0
+offset_top = 4.0
+offset_right = 132.0
+offset_bottom = 30.0
+focus_mode = 0
+text = "Управление"
+
+[node name="ArrivalInfo" type="VBoxContainer" parent="StatusHUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 5.0
+offset_right = -12.0
+offset_bottom = 48.0
+grow_horizontal = 0
+mouse_filter = 2
+
+[node name="Countdown" type="Label" parent="StatusHUD/ArrivalInfo"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 2
+text = "До станции: 00:20"
+
+[node name="Notice" type="Label" parent="StatusHUD/ArrivalInfo"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.85, 0.8, 0.65, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 2
+
 [node name="Audio" type="Node" parent="."]
 
 [node name="RailLoop" type="AudioStreamPlayer" parent="Audio"]
@@ -386,12 +523,15 @@ autoplay = true
 [node name="CafeLoop" type="AudioStreamPlayer" parent="Audio"]
 stream = ExtResource("4_cafe")
 volume_db = -10.0
-autoplay = true
 
 [node name="RadioLoop" type="AudioStreamPlayer" parent="Audio"]
 stream = ExtResource("6_radio")
 volume_db = -12.0
-autoplay = true
+
+[node name="GreenhouseLoop" type="AudioStreamPlayer" parent="Audio"]
+stream = ExtResource("3_rain")
+volume_db = -18.0
+pitch_scale = 1.25
 
 [node name="TunnelSfx" type="AudioStreamPlayer" parent="Audio"]
 stream = ExtResource("5_tunnel")

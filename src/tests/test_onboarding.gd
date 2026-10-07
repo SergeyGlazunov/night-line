@@ -9,6 +9,7 @@ func _init() -> void:
 	_test_new_save_starts_before_first_station()
 	_test_onboarding_progress_round_trips_in_save()
 	_test_three_stations_unlock_modes_with_both_special_cars()
+	_test_legacy_save_keeps_owned_cars_and_skips_onboarding()
 	if _failures == 0:
 		print("PASS: onboarding tests")
 	quit(_failures)
@@ -96,3 +97,21 @@ func _expect_equal(actual: Variant, expected: Variant, message: String) -> void:
 		return
 	_failures += 1
 	printerr("FAIL: %s; expected %s, got %s" % [message, expected, actual])
+
+
+func _test_legacy_save_keeps_owned_cars_and_skips_onboarding() -> void:
+	var path := "user://night_line_test_legacy.cfg"
+	var cfg := ConfigFile.new()
+	cfg.set_value("progress", "tickets", 70)
+	cfg.set_value("train", "has_cafe", true)
+	cfg.set_value("train", "has_radio", true)
+	cfg.set_value("prefs", "interval_mode", "off")
+	cfg.save(path)
+	var save = SaveMgr.new()
+	save.save_path = path
+	save.load_game()
+	_expect_equal(save.onboarding_step, 3, "legacy save skips onboarding")
+	_expect_equal(save.tickets, 70, "legacy Tickets preserved")
+	_expect_equal(save.has_cafe and save.has_radio, true, "legacy cars preserved")
+	_expect_equal(save.interval_mode, "off", "legacy mode preserved")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
