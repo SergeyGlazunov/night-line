@@ -6,7 +6,6 @@
 [ext_resource type="AudioStream" uid="uid://wpq737qai6cl" path="res://assets/audio/cafe.ogg" id="4_cafe"]
 [ext_resource type="AudioStream" uid="uid://bc8kyjxpci1ck" path="res://assets/audio/tunnel.ogg" id="5_tunnel"]
 [ext_resource type="AudioStream" uid="uid://eyb3woea5k1p" path="res://assets/audio/train_loop_alt.ogg" id="6_radio"]
-[ext_resource type="Texture2D" uid="uid://c8mocktrainpreview" path="res://assets/sprites/mock.png" id="7_mock"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -223,8 +222,8 @@ color = Color(1, 0.956863, 0.721569, 1)
 z_index = 10
 
 [node name="Sprite" type="Sprite2D" parent="MockPreview"]
-texture = ExtResource("7_mock")
 centered = false
+texture_filter = 1
 
 [node name="FogOverlay" type="ColorRect" parent="."]
 z_index = 40

@@ -21,7 +21,7 @@ const STATION_PANEL_SIZE := Vector2(400, 64)
 
 # Temporary full-scene art preview. ColorRect prototype stays in the tree.
 const USE_MOCK_PREVIEW := true
-const MOCK_SOURCE_SIZE := Vector2(2172, 724)
+const MOCK_PATH := "res://assets/sprites/mock.png"
 # Vertical focus in source image (0 = top, 1 = bottom). Train sits near mid-lower.
 const MOCK_FOCUS_Y := 0.55
 
@@ -77,7 +77,9 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 
 	setup_window()
+	_ensure_mock_texture()
 	_apply_visual_mode()
+	call_deferred("_apply_visual_mode")
 	start_ambiance()
 	_schedule_fog(FOG_FIRST_DELAY)
 	_schedule_tunnel(TUNNEL_FIRST_DELAY)
@@ -115,16 +117,44 @@ func _apply_visual_mode() -> void:
 		node.visible = not _use_mock_preview
 	_mock_preview.visible = _use_mock_preview
 	if _use_mock_preview:
+		_ensure_mock_texture()
 		_layout_mock_preview()
 
 
+func _ensure_mock_texture() -> void:
+	if _mock_sprite.texture != null and _mock_sprite.texture.get_width() > 0:
+		return
+
+	# Load PNG pixels directly so a broken/missing .import cannot blank the strip.
+	var image := Image.new()
+	var abs_path := ProjectSettings.globalize_path(MOCK_PATH)
+	var err := image.load(abs_path)
+	if err != OK:
+		push_error("Failed to load mock preview: %s (%s)" % [abs_path, error_string(err)])
+		return
+
+	_mock_sprite.texture = ImageTexture.create_from_image(image)
+	_mock_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+
 func _layout_mock_preview() -> void:
+	_ensure_mock_texture()
 	if _mock_sprite.texture == null:
 		return
 
+	var source_size := Vector2(
+		_mock_sprite.texture.get_width(),
+		_mock_sprite.texture.get_height()
+	)
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		return
+
 	var vp := get_viewport().get_visible_rect().size
-	var scale := vp.x / MOCK_SOURCE_SIZE.x
-	var scaled_h := MOCK_SOURCE_SIZE.y * scale
+	if vp.x <= 1.0 or vp.y <= 1.0:
+		vp = Vector2(1920.0, float(WINDOW_HEIGHT))
+
+	var scale := vp.x / source_size.x
+	var scaled_h := source_size.y * scale
 	var focus_y := scaled_h * MOCK_FOCUS_Y
 	var top := focus_y - vp.y * 0.5
 	top = clampf(top, 0.0, maxf(0.0, scaled_h - vp.y))
