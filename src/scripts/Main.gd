@@ -1,6 +1,8 @@
 extends Node2D
 
-const WINDOW_HEIGHT := 120
+const SaveMgr = preload("res://scripts/SaveManager.gd")
+
+const WINDOW_HEIGHT := 180
 const TUNNEL_FIRST_DELAY := 20.0
 const TUNNEL_INTERVAL := 70.0
 const TUNNEL_DURATION := 8.0
@@ -22,7 +24,7 @@ const REAL_INTERVAL_40_SEC := 40.0 * 60.0
 # Temporary full-scene art preview. ColorRect prototype stays in the tree.
 const USE_MOCK_PREVIEW := true
 const MOCK_PATH := "res://assets/sprites/mock.png"
-const MOCK_FOCUS_Y := 0.55
+const MOCK_FOCUS_Y := 0.5
 
 @onready var _mountains_layer: Parallax2D = $MountainsLayer
 @onready var _forest_layer: Parallax2D = $ForestLayer
@@ -43,7 +45,7 @@ const MOCK_FOCUS_Y := 0.55
 @onready var _skip_button: Button = $StationUI/Root/Panel/Margin/VBox/Buttons/SkipButton
 @onready var _status_label: Label = $StatusHUD/StatusLabel
 
-var _save := SaveManager.new()
+var _save = null
 var _hidden := false
 var _in_tunnel := false
 var _in_fog := false
@@ -59,6 +61,8 @@ var _prototype_visuals: Array[CanvasItem] = []
 
 
 func _ready() -> void:
+	_save = SaveMgr.new()
+
 	_prototype_visuals = [
 		$Sky as CanvasItem,
 		$MountainsLayer as CanvasItem,
@@ -78,11 +82,15 @@ func _ready() -> void:
 	_save.load_game()
 	_use_mock_preview = _save.use_mock_preview
 
+	# Apply window chrome after the first frame so DisplayServer is ready.
+	call_deferred("_boot_window_and_game")
+
+
+func _boot_window_and_game() -> void:
 	setup_window()
 	_apply_mute_state()
 	_ensure_mock_texture()
 	_apply_visual_mode()
-	call_deferred("_apply_visual_mode")
 	start_ambiance()
 	_update_status_hud()
 
@@ -107,9 +115,8 @@ func setup_window() -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 	var screen_count := DisplayServer.get_screen_count()
-	var screen_index := clampi(_save.screen_index, 0, max(0, screen_count - 1))
-	if screen_index != DisplayServer.window_get_current_screen():
-		DisplayServer.window_set_current_screen(screen_index)
+	var screen_index := clampi(_save.screen_index, 0, maxi(0, screen_count - 1))
+	DisplayServer.window_set_current_screen(screen_index)
 
 	var screen_rect := DisplayServer.screen_get_usable_rect(screen_index)
 	var window_width: int = screen_rect.size.x
@@ -166,10 +173,10 @@ func _layout_mock_preview() -> void:
 	if vp.x <= 1.0 or vp.y <= 1.0:
 		vp = Vector2(1920.0, float(WINDOW_HEIGHT))
 
+	# New mock is already strip-shaped (e.g. 1920x180): fit width, center vertically.
 	var scale := vp.x / source_size.x
 	var scaled_h := source_size.y * scale
-	var focus_y := scaled_h * MOCK_FOCUS_Y
-	var top := focus_y - vp.y * 0.5
+	var top := (scaled_h - vp.y) * MOCK_FOCUS_Y
 	top = clampf(top, 0.0, maxf(0.0, scaled_h - vp.y))
 
 	_mock_sprite.scale = Vector2(scale, scale)
@@ -250,7 +257,7 @@ func _apply_mute_state() -> void:
 
 
 func set_interval_mode(mode: String) -> void:
-	if mode not in [SaveManager.MODE_20, SaveManager.MODE_40, SaveManager.MODE_OFF]:
+	if mode not in [SaveMgr.MODE_20, SaveMgr.MODE_40, SaveMgr.MODE_OFF]:
 		return
 	if _save.interval_mode == mode:
 		return
@@ -277,24 +284,21 @@ func cycle_debug_time_scale() -> void:
 func _station_interval_seconds() -> float:
 	var real := 0.0
 	match _save.interval_mode:
-		SaveManager.MODE_20:
+		SaveMgr.MODE_20:
 			real = REAL_INTERVAL_20_SEC
-		SaveManager.MODE_40:
+		SaveMgr.MODE_40:
 			real = REAL_INTERVAL_40_SEC
 		_:
 			return 0.0
 	return maxf(1.0, real / maxf(1.0, _save.debug_time_scale))
 
 
-func _restart_station_schedule(immediate_countdown: bool) -> void:
+func _restart_station_schedule(_immediate_countdown: bool) -> void:
 	_station_token += 1
-	if _save.interval_mode == SaveManager.MODE_OFF:
+	if _save.interval_mode == SaveMgr.MODE_OFF:
 		_update_status_hud()
 		return
-	var delay := _station_interval_seconds()
-	if not immediate_countdown:
-		delay = maxf(1.0, delay)
-	_schedule_station(delay)
+	_schedule_station(_station_interval_seconds())
 
 
 func _set_parallax_running(running: bool) -> void:
@@ -384,15 +388,15 @@ func _schedule_station(delay: float) -> void:
 
 
 func _on_station_due() -> void:
-	if _save.interval_mode == SaveManager.MODE_OFF:
+	if _save.interval_mode == SaveMgr.MODE_OFF:
 		return
 	await open_station()
-	if _save.interval_mode != SaveManager.MODE_OFF:
+	if _save.interval_mode != SaveMgr.MODE_OFF:
 		_schedule_station(_station_interval_seconds())
 
 
 func open_station() -> void:
-	if _station_open or _save.interval_mode == SaveManager.MODE_OFF:
+	if _station_open or _save.interval_mode == SaveMgr.MODE_OFF:
 		return
 
 	var waited := 0.0
@@ -437,7 +441,7 @@ func _resolve_station(took_passenger: bool) -> void:
 	if not _station_open:
 		return
 
-	if took_passenger and _save.interval_mode != SaveManager.MODE_OFF:
+	if took_passenger and _save.interval_mode != SaveMgr.MODE_OFF:
 		_save.tickets += 12
 		_persist_save()
 
@@ -453,21 +457,25 @@ func _resolve_station(took_passenger: bool) -> void:
 
 
 func skip_to_station() -> void:
-	if _save.interval_mode == SaveManager.MODE_OFF or _station_open:
+	if _save.interval_mode == SaveMgr.MODE_OFF or _station_open:
 		return
 	_station_token += 1
 	await open_station()
-	if _save.interval_mode != SaveManager.MODE_OFF:
+	if _save.interval_mode != SaveMgr.MODE_OFF:
 		_schedule_station(_station_interval_seconds())
 
 
 func _persist_save() -> void:
+	if _save == null:
+		return
 	_save.use_mock_preview = _use_mock_preview
 	_save.screen_index = DisplayServer.window_get_current_screen()
 	_save.save_game()
 
 
 func _update_status_hud() -> void:
+	if _save == null:
+		return
 	var mute_mark := " · mute" if _save.muted else ""
 	_status_label.text = "Mode %s · %dt · x%.0f%s" % [
 		_save.mode_label(),
@@ -499,11 +507,11 @@ func _input(event: InputEvent) -> void:
 			KEY_P:
 				toggle_mock_preview()
 			KEY_1:
-				set_interval_mode(SaveManager.MODE_20)
+				set_interval_mode(SaveMgr.MODE_20)
 			KEY_2:
-				set_interval_mode(SaveManager.MODE_40)
+				set_interval_mode(SaveMgr.MODE_40)
 			KEY_3:
-				set_interval_mode(SaveManager.MODE_OFF)
+				set_interval_mode(SaveMgr.MODE_OFF)
 			KEY_0:
 				cycle_debug_time_scale()
 			KEY_9:

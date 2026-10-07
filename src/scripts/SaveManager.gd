@@ -1,4 +1,3 @@
-class_name SaveManager
 extends RefCounted
 
 const SAVE_PATH := "user://night_line_save.cfg"
