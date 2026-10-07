@@ -17,6 +17,7 @@ const FOG_MAX_ALPHA := 0.28
 
 const STATION_FIRST_DELAY := 40.0
 const STATION_INTERVAL := 90.0
+const STATION_PANEL_SIZE := Vector2(400, 64)
 
 @onready var _mountains_layer: Parallax2D = $MountainsLayer
 @onready var _forest_layer: Parallax2D = $ForestLayer
@@ -28,10 +29,11 @@ const STATION_INTERVAL := 90.0
 @onready var _tunnel_overlay: ColorRect = $TunnelOverlay
 @onready var _fog_overlay: ColorRect = $FogOverlay
 @onready var _station_root: Control = $StationUI/Root
-@onready var _station_title: Label = $StationUI/Root/Center/Panel/Margin/VBox/Title
-@onready var _station_body: Label = $StationUI/Root/Center/Panel/Margin/VBox/Body
-@onready var _take_button: Button = $StationUI/Root/Center/Panel/Margin/VBox/Buttons/TakeButton
-@onready var _skip_button: Button = $StationUI/Root/Center/Panel/Margin/VBox/Buttons/SkipButton
+@onready var _station_panel: Control = $StationUI/Root/Panel
+@onready var _station_title: Label = $StationUI/Root/Panel/Margin/VBox/Title
+@onready var _station_body: Label = $StationUI/Root/Panel/Margin/VBox/Body
+@onready var _take_button: Button = $StationUI/Root/Panel/Margin/VBox/Buttons/TakeButton
+@onready var _skip_button: Button = $StationUI/Root/Panel/Margin/VBox/Buttons/SkipButton
 
 var _hidden := false
 var _muted := false
@@ -53,12 +55,18 @@ func _ready() -> void:
 	_take_button.pressed.connect(_on_take_pressed)
 	_skip_button.pressed.connect(_on_skip_pressed)
 	_station_root.visible = false
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
 
 	setup_window()
 	start_ambiance()
 	_schedule_fog(FOG_FIRST_DELAY)
 	_schedule_tunnel(TUNNEL_FIRST_DELAY)
 	_schedule_station(STATION_FIRST_DELAY)
+
+
+func _on_viewport_size_changed() -> void:
+	if _station_open:
+		_layout_station_panel()
 
 
 func setup_window() -> void:
@@ -232,7 +240,20 @@ func open_station() -> void:
 
 	_station_title.text = "Hollow Creek · arrival"
 	_station_body.text = "Passenger: night-shift nurse  ·  +12 tickets"
+	_layout_station_panel()
 	_station_root.visible = true
+
+
+func _layout_station_panel() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var panel_size := STATION_PANEL_SIZE
+	# Keep the card fully inside the strip with equal top/bottom margins.
+	panel_size.y = minf(panel_size.y, maxf(52.0, vp.y - 16.0))
+	_station_panel.size = panel_size
+	_station_panel.position = Vector2(
+		(vp.x - panel_size.x) * 0.5,
+		(vp.y - panel_size.y) * 0.5
+	)
 
 
 func _on_take_pressed() -> void:
