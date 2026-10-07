@@ -5,21 +5,25 @@ const SAVE_PATH := "user://night_line_save.cfg"
 const MODE_20 := "20"
 const MODE_40 := "40"
 const MODE_OFF := "off"
+const ONBOARDING_COMPLETE := 3
 
+var save_path: String = SAVE_PATH
 var tickets: int = 0
 var interval_mode: String = MODE_20
 var muted: bool = false
 var screen_index: int = 0
 var has_passenger: bool = true
-var has_cafe: bool = true
-var has_radio: bool = true
+var has_cafe: bool = false
+var has_greenhouse: bool = false
+var has_radio: bool = false
+var onboarding_step: int = 0
 var use_mock_preview: bool = true
 var debug_time_scale: float = 60.0
 
 
 func load_game() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
+	if cfg.load(save_path) != OK:
 		return
 
 	tickets = int(cfg.get_value("progress", "tickets", tickets))
@@ -28,9 +32,20 @@ func load_game() -> void:
 	screen_index = int(cfg.get_value("prefs", "screen_index", screen_index))
 	has_passenger = bool(cfg.get_value("train", "has_passenger", has_passenger))
 	has_cafe = bool(cfg.get_value("train", "has_cafe", has_cafe))
+	has_greenhouse = bool(cfg.get_value("train", "has_greenhouse", has_greenhouse))
 	has_radio = bool(cfg.get_value("train", "has_radio", has_radio))
 	use_mock_preview = bool(cfg.get_value("prefs", "use_mock_preview", use_mock_preview))
 	debug_time_scale = float(cfg.get_value("debug", "time_scale", debug_time_scale))
+
+	if cfg.has_section_key("progress", "onboarding_step"):
+		onboarding_step = clampi(
+			int(cfg.get_value("progress", "onboarding_step", onboarding_step)),
+			0,
+			ONBOARDING_COMPLETE
+		)
+	else:
+		# Saves from the prototype predate onboarding and already grant its cars.
+		onboarding_step = ONBOARDING_COMPLETE
 
 	if interval_mode not in [MODE_20, MODE_40, MODE_OFF]:
 		interval_mode = MODE_20
@@ -40,15 +55,17 @@ func load_game() -> void:
 func save_game() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("progress", "tickets", tickets)
+	cfg.set_value("progress", "onboarding_step", onboarding_step)
 	cfg.set_value("prefs", "interval_mode", interval_mode)
 	cfg.set_value("prefs", "muted", muted)
 	cfg.set_value("prefs", "screen_index", screen_index)
 	cfg.set_value("prefs", "use_mock_preview", use_mock_preview)
 	cfg.set_value("train", "has_passenger", has_passenger)
 	cfg.set_value("train", "has_cafe", has_cafe)
+	cfg.set_value("train", "has_greenhouse", has_greenhouse)
 	cfg.set_value("train", "has_radio", has_radio)
 	cfg.set_value("debug", "time_scale", debug_time_scale)
-	cfg.save(SAVE_PATH)
+	cfg.save(save_path)
 
 
 func mode_label() -> String:
