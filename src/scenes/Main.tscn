@@ -228,14 +228,14 @@ texture_filter = 1
 [node name="FogOverlay" type="ColorRect" parent="."]
 z_index = 40
 offset_right = 1920.0
-offset_bottom = 120.0
+offset_bottom = 180.0
 mouse_filter = 2
 color = Color(0.75, 0.8, 0.85, 0)
 
 [node name="TunnelOverlay" type="ColorRect" parent="."]
 z_index = 100
 offset_right = 1920.0
-offset_bottom = 120.0
+offset_bottom = 180.0
 mouse_filter = 2
 color = Color(0, 0, 0, 0)
 
